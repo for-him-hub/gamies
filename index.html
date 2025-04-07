@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Girly Pop Game Hub</title>
+  <style>
+    body {
+      font-family: 'Comic Sans MS', cursive;
+      background: linear-gradient(to right, #ffe0f0, #ffeaf5);
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      text-align: center;
+      color: #d63384;
+      margin: 20px 0;
+    }
+    .game-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      padding: 20px;
+    }
+    .game {
+      border: 3px dashed #ffb6c1;
+      padding: 10px;
+      border-radius: 15px;
+      background: #fff0f5;
+      box-shadow: 0 0 15px rgba(255, 182, 193, 0.5);
+      width: 320px;
+      height: 320px;
+      overflow: hidden;
+      position: relative;
+    }
+    canvas {
+      background: #fffafc;
+      border: 2px solid #ff99cc;
+      border-radius: 10px;
+    }
+    #snakeCanvas:focus {
+      outline: 3px solid #ff99cc;
+      box-shadow: 0 0 10px #ff99cc;
+    }
+    .hidden {
+      display: none;
+    }
+    .message-box {
+      text-align: center;
+      font-size: 1.8rem;
+      margin-top: 20px;
+      color: #d63384;
+      background: #fff0f5;
+      padding: 10px 20px;
+      border-radius: 15px;
+      display: inline-block;
+    }
+    #rainbowBlocks div {
+      border-radius: 5px;
+      box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.1);
+    }
+    button {
+      background-color: #ff99cc;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    #decodeContainer {
+      margin: 20px auto;
+      max-width: 400px;
+      background: #fff0f5;
+      border: 3px dashed #ffb6c1;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 0 15px rgba(255, 182, 193, 0.5);
+    }
+    #jumbledLetters span {
+      display: inline-block;
+      font-size: 24px;
+      font-weight: bold;
+      color: #d63384;
+      margin: 5px;
+      padding: 10px;
+      background: #ffe6f2;
+      border: 2px solid #ff69b4;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+    #inputBoxes input {
+      width: 40px;
+      height: 40px;
+      text-align: center;
+      font-size: 24px;
+      margin: 5px;
+      border-radius: 8px;
+      border: 2px solid #ff69b4;
+      background: #fffafc;
+      color: #d63384;
+    }
+  </style>
+</head>
+<body>
+  <h1>💖 Welcome to the Girly Game Hub 💖</h1>
+  <div class="game-container">
+    <div class="game" id="snake-game">
+      <canvas id="snakeCanvas" width="300" height="300" tabindex="0"></canvas>
+    </div>
+    <div class="game" id="pixel-game">
+      <canvas id="pixelCanvas" width="300" height="300"></canvas>
+    </div>
+    <div class="game" id="rainbow-game">
+      <div id="rainbowBlocks" style="display: flex; flex-wrap: wrap; width: 300px; height: 300px;"></div>
+    </div>
+  </div>
+
+  <!-- Decode game section outside main container -->
+  <div id="decodeContainer">
+    <h2 style="text-align:center;">🔐 Decode the Message</h2>
+    <div id="jumbledLetters" style="text-align:center;"></div>
+    <div id="inputBoxes" style="text-align:center; margin-top:15px;"></div>
+  </div>
+
+  <div style="text-align:center">
+    <div class="message-box hidden" id="finalMessage">
+      🎉 Congratulations! You've unlocked the secret message: <b>You are amazing and fabulous! 💅</b> 🎉
+    </div>
+  </div>
+
+  <script>
+    let completedGames = { snake: false, pixel: false, rainbow: false, decode: false };
+
+    function checkCompletion() {
+      if (Object.values(completedGames).every(Boolean)) {
+        document.getElementById('finalMessage').classList.remove('hidden');
+      }
+    }
+
+    // ============ SNAKE GAME ============
+    const snakeCanvas = document.getElementById('snakeCanvas');
+    const ctx = snakeCanvas.getContext('2d');
+    const gridSize = 10;
+    let snake = [{ x: 150, y: 150 }];
+    let direction = { x: gridSize, y: 0 };
+    let nextDirection = direction;
+    let food = { x: 100, y: 100 };
+    let snakeScore = 0;
+    let snakeWon = false;
+
+    window.addEventListener('load', () => {
+      snakeCanvas.focus();
+    });
+
+    snakeCanvas.addEventListener('click', () => {
+      snakeCanvas.focus();
+    });
+
+    function drawSnake() {
+      ctx.clearRect(0, 0, snakeCanvas.width, snakeCanvas.height);
+      ctx.fillStyle = '#d63384';
+      snake.forEach(part => ctx.fillRect(part.x, part.y, gridSize, gridSize));
+      ctx.fillStyle = '#ff99cc';
+      ctx.fillRect(food.x, food.y, gridSize, gridSize);
+    }
+
+    function updateSnake() {
+      if (snakeWon) return;
+
+      direction = nextDirection;
+      const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
+
+      if (head.x < 0 || head.x >= 300 || head.y < 0 || head.y >= 300 || snake.some(p => p.x === head.x && p.y === head.y)) {
+        return;
+      }
+
+      snake.unshift(head);
+
+      if (head.x === food.x && head.y === food.y) {
+        snakeScore++;
+        if (snakeScore >= 10 && !completedGames.snake) {
+          completedGames.snake = true;
+          snakeWon = true;
+          alert('🎉 You won the Snake game!');
+          checkCompletion();
+          return;
+        }
+        food = {
+          x: Math.floor(Math.random() * 30) * gridSize,
+          y: Math.floor(Math.random() * 30) * gridSize
+        };
+      } else {
+        snake.pop();
+      }
+    }
+
+    function gameLoop() {
+      updateSnake();
+      drawSnake();
+    }
+
+    snakeCanvas.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowUp' && direction.y === 0) nextDirection = { x: 0, y: -gridSize };
+      else if (e.key === 'ArrowDown' && direction.y === 0) nextDirection = { x: 0, y: gridSize };
+      else if (e.key === 'ArrowLeft' && direction.x === 0) nextDirection = { x: -gridSize, y: 0 };
+      else if (e.key === 'ArrowRight' && direction.x === 0) nextDirection = { x: gridSize, y: 0 };
+    });
+
+    setInterval(gameLoop, 150);
+
+    // ============ PIXEL HEART GAME ============
+    const pixelCanvas = document.getElementById('pixelCanvas');
+    const pixelCtx = pixelCanvas.getContext('2d');
+    const heartShape = [
+      [0,1,0,0,0,0,1,0],
+      [1,1,1,0,0,1,1,1],
+      [1,1,1,1,1,1,1,1],
+      [1,1,1,1,1,1,1,1],
+      [0,1,1,1,1,1,1,0],
+      [0,0,1,1,1,1,0,0],
+      [0,0,0,1,1,0,0,0],
+    ];
+    const filledHeart = new Set();
+
+    function drawHeartGrid() {
+      pixelCtx.clearRect(0, 0, 300, 300);
+      for (let y = 0; y < heartShape.length; y++) {
+        for (let x = 0; x < heartShape[0].length; x++) {
+          const px = x * 30 + 30;
+          const py = y * 30 + 30;
+          const key = `${x},${y}`;
+          if (heartShape[y][x] === 1) {
+            pixelCtx.fillStyle = filledHeart.has(key) ? '#ff69b4' : '#ffe6f0';
+            pixelCtx.fillRect(px, py, 28, 28);
+            pixelCtx.strokeStyle = '#ffc0cb';
+            pixelCtx.strokeRect(px, py, 28, 28);
+          }
+        }
+      }
+    }
+
+    pixelCanvas.addEventListener('click', (e) => {
+      const x = Math.floor((e.offsetX - 30) / 30);
+      const y = Math.floor((e.offsetY - 30) / 30);
+      if (heartShape[y] && heartShape[y][x] === 1) {
+        const key = `${x},${y}`;
+        if (!filledHeart.has(key)) {
+          filledHeart.add(key);
+          drawHeartGrid();
+          let totalHeartPixels = heartShape.flat().filter(v => v === 1).length;
+          if (filledHeart.size >= totalHeartPixels && !completedGames.pixel) {
+            completedGames.pixel = true;
+            alert('💖 You completed the Heart game!');
+            checkCompletion();
+          }
+        }
+      }
+    });
+
+    drawHeartGrid();
+
+    // ============ RAINBOW BLOCK GAME ============
+    const rainbowBlocks = document.getElementById('rainbowBlocks');
+    const colors = ['violet','indigo','blue','green','yellow','orange','red'];
+
+    function renderBlocks() {
+      const shuffled = [...colors].sort(() => Math.random() - 0.5);
+      rainbowBlocks.innerHTML = '';
+      rainbowBlocks.style.display = 'flex';
+      rainbowBlocks.style.flexWrap = 'nowrap';
+      shuffled.forEach(color => {
+        const block = document.createElement('div');
+        block.style.background = color;
+        block.style.width = '40px';
+        block.style.height = '40px';
+        block.style.margin = '2px';
+        block.style.cursor = 'grab';
+        block.draggable = true;
+        block.dataset.color = color;
+        block.addEventListener('dragstart', dragStart);
+        block.addEventListener('dragover', dragOver);
+        block.addEventListener('drop', dragDrop);
+        rainbowBlocks.appendChild(block);
+      });
+    }
+
+    let dragSrc = null;
+
+    function dragStart(e) {
+      dragSrc = e.target;
+    }
+
+    function dragOver(e) {
+      e.preventDefault();
+    }
+
+    function dragDrop(e) {
+      if (dragSrc !== e.target) {
+        const srcColor = dragSrc.style.background;
+        dragSrc.style.background = e.target.style.background;
+        e.target.style.background = srcColor;
+        checkRainbowOrder();
+      }
+    }
+
+    function checkRainbowOrder() {
+      const blocks = Array.from(rainbowBlocks.children).map(div => div.style.background);
+      const isOrdered = blocks.every((color, i) => color === colors[i]);
+      if (isOrdered && !completedGames.rainbow) {
+        completedGames.rainbow = true;
+        alert('🌈 You completed the Rainbow game!');
+        checkCompletion();
+      }
+    }
+
+    renderBlocks();
+
+    // ============ DECODE GAME ============
+    const targetMessage = ['i','l','o','v','e','y','o','u'];
+    const jumbled = [...targetMessage].sort(() => Math.random() - 0.5);
+
+    const jumbledContainer = document.getElementById('jumbledLetters');
+    const inputContainer = document.getElementById('inputBoxes');
+
+    jumbled.forEach(letter => {
+      const span = document.createElement('span');
+      span.textContent = letter.toUpperCase();
+      jumbledContainer.appendChild(span);
+    });
+
+    targetMessage.forEach((_, i) => {
+      const input = document.createElement('input');
+      input.maxLength = 1;
+      input.addEventListener('input', checkDecodeMessage);
+      inputContainer.appendChild(input);
+    });
+
+    function checkDecodeMessage() {
+      const values = Array.from(inputContainer.children).map(input => input.value.toLowerCase());
+      const isCorrect = values.every((val, idx) => val === targetMessage[idx]);
+      if (isCorrect && !completedGames.decode) {
+        completedGames.decode = true;
+        alert('💌 You decoded the message: I LOVE YOU!');
+        checkCompletion();
+      }
+    }
+  </script>
+</body>
+</html>
